@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import DiseaseDetector from '../components/DiseaseDetector'
 import Chatbot from '../components/Chatbot'
 import TipsSidebar from '../components/TipsSidebar'
+import WeatherWidget from '../components/WeatherWidget'
 
 export default function Home() {
+  const [weather, setWeather] = useState(null)
+
   return (
     <div className="min-h-screen pt-20 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -24,17 +28,18 @@ export default function Home() {
         </div>
 
         {/* Two-Column Layout: 65% left / 35% right */}
-        <div className="grid grid-cols-1 lg:grid-cols-[65%_35%] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[65%_35%] gap-6 items-start">
 
           {/* ─── LEFT COLUMN ─────────────────────────────────────── */}
           <div className="space-y-6">
-            <DiseaseDetector />
+            <DiseaseDetector weather={weather} />
             <Chatbot />
           </div>
 
           {/* ─── RIGHT COLUMN ────────────────────────────────────── */}
-          <div>
-            <TipsSidebar />
+          <div className="space-y-4">
+            <WeatherWidget onWeatherReady={setWeather} />
+            <TipsSidebar weather={weather} />
           </div>
         </div>
       </div>

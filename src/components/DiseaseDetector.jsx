@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 /* ─── Stub Handlers ─────────────────────────────────────────────── */
 
@@ -15,8 +15,7 @@ function handleOpenCamera(setPreview, setDetectionResult) {
   navigator.mediaDevices.getUserMedia({ video: true })
     .then(stream => {
       alert('📷 Camera access granted!\nTODO: display live stream and capture frame, then POST to /api/detect')
-      // TODO: display stream in a <video> element, provide capture button
-      stream.getTracks().forEach(t => t.stop()) // stop immediately (stub)
+      stream.getTracks().forEach(t => t.stop())
     })
     .catch(err => {
       console.error('Camera error:', err)
@@ -33,12 +32,11 @@ function handleDetect(file, setDetectionResult, setLoading) {
   if (!file) { alert('Please select an image first.'); return }
   setLoading(true)
 
-  // Simulate async API call
   setTimeout(() => {
     // TODO: replace with real fetch('/api/detect', { method:'POST', body: FormData })
     setDetectionResult({
-      diseaseName:     'Late Blight (Phytophthora infestans)',
-      severity:        'High',
+      diseaseName:    'Late Blight (Phytophthora infestans)',
+      severity:       'High',
       measures: [
         'Remove and destroy infected plant parts immediately.',
         'Apply copper-based fungicide every 7–10 days.',
@@ -51,9 +49,39 @@ function handleDetect(file, setDetectionResult, setLoading) {
   }, 1800)
 }
 
+/**
+ * TODO: connect to backend — POST /api/chat with disease context
+ * For now returns stubbed contextual replies
+ */
+async function fetchContextualReply(userMessage, diseaseName) {
+  console.log('fetchContextualReply() called:', userMessage)
+  // TODO: replace with real fetch('/api/chat', { method:'POST', body: JSON.stringify({ message: userMessage, context: diseaseName }) })
+  const replies = [
+    `🌿 For ${diseaseName}, the most effective treatment is copper-based fungicide applied every 7–10 days. Remove all visibly infected leaves first.`,
+    `💧 Avoid overhead irrigation entirely when dealing with ${diseaseName} — water at the base of the plant only, ideally in early morning.`,
+    `🧪 Organic option: Neem oil spray (5ml per litre of water) applied weekly can help slow the spread of ${diseaseName} significantly.`,
+    `🌱 In future seasons, use certified blight-resistant seed varieties and maintain wide row spacing for better air circulation.`,
+    `⚠️ ${diseaseName} can spread to neighbouring plants within 24–48 hours in humid conditions. Isolate affected plants immediately.`,
+    `🔄 After handling infected plants, wash hands and tools with diluted bleach solution to prevent cross-contamination.`,
+  ]
+  return new Promise(resolve =>
+    setTimeout(() => resolve(replies[Math.floor(Math.random() * replies.length)]), 1000)
+  )
+}
+
+/* ─── Generate recommended questions based on disease ─── */
+function getSuggestedQuestions(diseaseName) {
+  return [
+    `How do I treat ${diseaseName}?`,
+    `Will it spread to other crops?`,
+    `What organic remedies work?`,
+    `How to prevent it next season?`,
+  ]
+}
+
 /* ─── Severity Badge ─────────────────────────────────────────────── */
 const SeverityBadge = ({ level }) => {
-  const cls = level === 'Low' ? 'badge-low' : level === 'Medium' ? 'badge-medium' : 'badge-high'
+  const cls  = level === 'Low' ? 'badge-low' : level === 'Medium' ? 'badge-medium' : 'badge-high'
   const icon = level === 'Low' ? '🟢' : level === 'Medium' ? '🟠' : '🔴'
   return (
     <span className={`${cls} text-xs font-bold px-3 py-1 rounded-full`}>
@@ -62,14 +90,171 @@ const SeverityBadge = ({ level }) => {
   )
 }
 
-/* ─── Main Component ─────────────────────────────────────────────── */
-export default function DiseaseDetector() {
-  const [preview, setPreview]               = useState(null)
-  const [detectionResult, setDetectionResult] = useState(null)
-  const [loading, setLoading]               = useState(false)
-  const fileInputRef                        = useRef(null)
+/* ─── Voice Input Helper ────────────────────────────────────────── */
+function startVoiceInput(setInput) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (!SpeechRecognition) {
+    alert('🎤 Voice input not supported in this browser.')
+    return
+  }
+  const recognition = new SpeechRecognition()
+  recognition.lang = 'en-IN'
+  recognition.interimResults = false
+  recognition.maxAlternatives = 1
+  recognition.onresult = (e) => setInput(e.results[0][0].transcript)
+  recognition.onerror  = (e) => console.error('Voice error:', e.error)
+  recognition.start()
+}
 
-  /** TODO: connect to backend — handleUploadImage triggers file picker */
+/* ─── Chat Bubble ────────────────────────────────────────────────── */
+const Bubble = ({ msg }) => (
+  <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} mb-2`}>
+    {msg.role === 'bot' && <span className="text-lg mr-2 flex-shrink-0 self-end">🌿</span>}
+    <div
+      className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs leading-relaxed
+        ${msg.role === 'user'
+          ? 'bg-[#f9a825]/90 text-black rounded-br-sm font-medium'
+          : 'bg-[#2e7d32]/70 text-white rounded-bl-sm border border-green-500/30'
+        }`}
+    >
+      {msg.text}
+    </div>
+    {msg.role === 'user' && <span className="text-lg ml-2 flex-shrink-0 self-end">👨‍🌾</span>}
+  </div>
+)
+
+/* ─── Inline Result Chat ─────────────────────────────────────────── */
+function ResultChat({ result }) {
+  const diseaseName = result.diseaseName
+  const suggestions = getSuggestedQuestions(diseaseName)
+
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      role: 'bot',
+      text: `🙏 I've analysed your crop. It appears to be **${diseaseName}** with ${result.severity} severity. Do you have any questions about treatment, prevention, or next steps?`,
+    },
+  ])
+  const [input,  setInput]  = useState('')
+  const [typing, setTyping] = useState(false)
+  const chatRef = useRef(null)
+
+  // Auto-scroll chat window
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
+  }, [messages, typing])
+
+  const send = async (text) => {
+    const trimmed = (text ?? input).trim()
+    if (!trimmed) return
+    setMessages(prev => [...prev, { id: Date.now(), role: 'user', text: trimmed }])
+    setInput('')
+    setTyping(true)
+    const reply = await fetchContextualReply(trimmed, diseaseName)
+    setTyping(false)
+    setMessages(prev => [...prev, { id: Date.now() + 1, role: 'bot', text: reply }])
+  }
+
+  const onKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-white/10">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-base">💬</span>
+        <h4 className="font-poppins font-semibold text-white text-sm">
+          Ask about this result
+        </h4>
+        <span className="text-[10px] bg-[#a5d6a7]/20 text-[#a5d6a7] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+          AI Assistant
+        </span>
+      </div>
+
+      {/* Suggested question chips */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {suggestions.map((q, i) => (
+          <button
+            key={i}
+            onClick={() => send(q)}
+            disabled={typing}
+            className="text-[11px] bg-white/8 hover:bg-[#2e7d32]/50 disabled:opacity-40
+                       border border-white/15 hover:border-green-500/40
+                       text-white/80 hover:text-white px-3 py-1.5 rounded-full transition-all duration-200"
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+
+      {/* Chat window */}
+      <div
+        ref={chatRef}
+        className="h-44 overflow-y-auto mb-3 pr-1 space-y-0.5"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
+      >
+        {messages.map(msg => <Bubble key={msg.id} msg={msg} />)}
+
+        {typing && (
+          <div className="flex justify-start mb-2">
+            <span className="text-lg mr-2">🌿</span>
+            <div className="bg-[#2e7d32]/70 border border-green-500/30 px-3 py-2 rounded-2xl rounded-bl-sm flex gap-1 items-center">
+              <span className="w-1.5 h-1.5 bg-green-300 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-green-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-green-300 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input bar */}
+      <div className="flex gap-2">
+        <input
+          id="result-chat-input"
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Ask anything about this disease…"
+          className="flex-1 rounded-full px-4 py-2 text-white text-xs outline-none transition
+                     focus:border-green-400 focus:ring-1 focus:ring-green-400"
+          style={{
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.18)',
+            color: '#ffffff',
+            caretColor: '#a5d6a7',
+          }}
+        />
+        {/* Voice Button */}
+        <button
+          id="result-chat-voice"
+          onClick={() => startVoiceInput(setInput)}
+          title="Voice input"
+          className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-full
+                     border border-white/20 transition text-sm flex-shrink-0"
+        >
+          🎤
+        </button>
+        <button
+          id="result-chat-send"
+          onClick={() => send()}
+          disabled={!input.trim() || typing}
+          className="bg-[#2e7d32] hover:bg-[#388e3c] disabled:opacity-40 disabled:cursor-not-allowed
+                     text-white px-4 py-2 rounded-full font-semibold text-xs transition flex-shrink-0"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Main Component ─────────────────────────────────────────────── */
+export default function DiseaseDetector({ weather }) {
+  const [preview, setPreview]                 = useState(null)
+  const [detectionResult, setDetectionResult] = useState(null)
+  const [loading, setLoading]                 = useState(false)
+  const fileInputRef                          = useRef(null)
+
   const handleUploadImage = () => {
     console.log('handleUploadImage() called')
     fileInputRef.current?.click()
@@ -93,6 +278,31 @@ export default function DiseaseDetector() {
       <p className="text-white/60 text-sm mb-6 font-inter">
         Upload a photo or use your camera — our AI identifies the disease in seconds.
       </p>
+
+      {/* ── Live Weather Context Strip ── */}
+      {weather && (
+        <div className="flex items-center gap-3 mb-5 px-4 py-2.5 rounded-xl bg-[#1a2e3a]/60 border border-[#64b5f6]/20">
+          <span className="text-xl">{weather.condEmoji}</span>
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+            <span className="text-[#64b5f6] text-xs font-semibold">
+              📍 {weather.city}
+            </span>
+            <span className="text-white/50 text-xs">
+              {Math.round(weather.temp)}°C · {weather.condition} · 💧{weather.humidity}%
+            </span>
+            <span className="text-white/40 text-xs">
+              {weather.season.emoji} {weather.season.name}
+            </span>
+          </div>
+          <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            weather.risk?.level === 'high'   ? 'bg-red-900/60 text-red-300' :
+            weather.risk?.level === 'medium' ? 'bg-yellow-900/60 text-yellow-300' :
+                                               'bg-green-900/60 text-green-300'
+          }`}>
+            {weather.risk?.level?.toUpperCase()} RISK
+          </span>
+        </div>
+      )}
 
       {/* Upload / Camera Box */}
       <div className="upload-box p-8 flex flex-col items-center justify-center gap-4 mb-6 min-h-[180px]">
@@ -132,7 +342,6 @@ export default function DiseaseDetector() {
         >
           📁 Upload Image
         </button>
-        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           id="file-input"
@@ -154,9 +363,11 @@ export default function DiseaseDetector() {
         </div>
       )}
 
-      {/* Result Card */}
+      {/* Result Card + Inline Chat */}
       {detectionResult && !loading && (
         <div id="detection-result-card" className="glass-green p-6 fade-up space-y-4">
+
+          {/* ── Disease Info ── */}
           <div className="flex items-start justify-between flex-wrap gap-2">
             <div>
               <p className="text-white/60 text-xs uppercase tracking-wider mb-1">Disease Detected</p>
@@ -177,6 +388,7 @@ export default function DiseaseDetector() {
             </div>
           </div>
 
+          {/* ── Preventive Measures ── */}
           <div>
             <p className="text-white/60 text-xs uppercase tracking-wider mb-2">Preventive Measures</p>
             <ul className="space-y-1.5">
@@ -188,6 +400,9 @@ export default function DiseaseDetector() {
               ))}
             </ul>
           </div>
+
+          {/* ── Inline Contextual Chat ── */}
+          <ResultChat result={detectionResult} />
         </div>
       )}
     </div>

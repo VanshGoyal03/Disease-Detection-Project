@@ -83,6 +83,8 @@ export default function Navbar({ activeSection }) {
     { label: 'Contact Us', href: '#contact' },
   ]
 
+  const helplineHref = '#contact'
+
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/10"
@@ -103,6 +105,18 @@ export default function Navbar({ activeSection }) {
               {navLinks.map(l => (
                 <a key={l.label} href={l.href} className="navbar-link text-sm">{l.label}</a>
               ))}
+
+              {/* Mental Health Helpline — distinct purple pill */}
+              <a
+                id="helpline-nav-link"
+                href={helplineHref}
+                className="flex items-center gap-1.5 text-[#ce93d8] text-sm font-semibold
+                           bg-purple-900/30 hover:bg-purple-800/50 border border-purple-500/30
+                           hover:border-purple-400/60 px-3 py-1.5 rounded-full transition-all duration-200"
+                title="Kisan Mental Health Helpline — Free 24×7"
+              >
+                🧠 Helpline
+              </a>
 
               {/* Settings Dropdown */}
               <div className="relative">
@@ -168,6 +182,13 @@ export default function Navbar({ activeSection }) {
                   {l.label}
                 </a>
               ))}
+              <a
+                href={helplineHref}
+                onClick={() => setMobileOpen(false)}
+                className="block px-3 py-2 text-[#ce93d8] hover:text-purple-300 transition text-sm font-semibold"
+              >
+                🧠 Helpline (Mental Health)
+              </a>
               <button onClick={() => openModal('changePwd')}
                 className="block w-full text-left px-3 py-2 text-white/80 hover:text-yellow-400 transition text-sm">
                 ⚙ Change Password
