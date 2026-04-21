@@ -1,26 +1,28 @@
 import { useState, useRef, useEffect } from 'react'
-
+import { GoogleGenerativeAI } from '@google/generative-ai'
 /* ─── Stub Handlers ─────────────────────────────────────────────── */
 
 /**
  * TODO: connect to backend — POST /api/chat
  * Send user message, receive AI response
  */
+/* ─── Gemini SDK ────────────────────────────────────────────────── */
+const genAI = new GoogleGenerativeAI('AIzaSyDw7ivBDJxkEdum0pEeiJ85ETVaImKvzXw')
+const chatModel = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' })
+
 async function fetchBotResponse(userMessage) {
-  console.log('handleSendMessage() — sending to AI:', userMessage)
-  // TODO: replace with real fetch('/api/chat', { method:'POST', body: JSON.stringify({ message: userMessage }) })
-  return new Promise(resolve =>
-    setTimeout(() => {
-      const replies = [
-        '🌿 That sounds like it could be a fungal infection. Try applying neem oil spray every 5 days.',
-        '💧 Ensure you\'re not overwatering. Most crop diseases thrive in waterlogged soil.',
-        '🌱 Early detection is key! Look for yellow spots or wilting leaves as early signs.',
-        '🌾 This disease can spread quickly in humid conditions. Isolate affected plants.',
-        '✅ Good news — this type of infection rarely spreads to humans. Focus on plant care.',
-      ]
-      resolve(replies[Math.floor(Math.random() * replies.length)])
-    }, 1200)
-  )
+  try {
+    const prompt = `You are Kisaan Bandhu AI, a helpful assistant for Indian farmers.
+Answer briefly in English. You may add a helpful Hindi phrase if relevant.
+Keep the response under 4 sentences.
+User asked: ${userMessage}`
+
+    const result = await chatModel.generateContent(prompt)
+    return result.response.text()
+  } catch (error) {
+    console.error('Gemini SDK Error:', error)
+    return '🙏 Maaf kijiye, connection error. Please try again.'
+  }
 }
 
 /**

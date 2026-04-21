@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 /* ─── Stub Handlers ─────────────────────────────────────────────── */
 
@@ -49,24 +50,24 @@ function handleDetect(file, setDetectionResult, setLoading) {
   }, 1800)
 }
 
-/**
- * TODO: connect to backend — POST /api/chat with disease context
- * For now returns stubbed contextual replies
- */
+/* ─── Gemini SDK (disease context chat) ─────────────────────────── */
+const diseaseGenAI = new GoogleGenerativeAI('AIzaSyDw7ivBDJxkEdum0pEeiJ85ETVaImKvzXw')
+const diseaseModel = diseaseGenAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' })
+
 async function fetchContextualReply(userMessage, diseaseName) {
-  console.log('fetchContextualReply() called:', userMessage)
-  // TODO: replace with real fetch('/api/chat', { method:'POST', body: JSON.stringify({ message: userMessage, context: diseaseName }) })
-  const replies = [
-    `🌿 For ${diseaseName}, the most effective treatment is copper-based fungicide applied every 7–10 days. Remove all visibly infected leaves first.`,
-    `💧 Avoid overhead irrigation entirely when dealing with ${diseaseName} — water at the base of the plant only, ideally in early morning.`,
-    `🧪 Organic option: Neem oil spray (5ml per litre of water) applied weekly can help slow the spread of ${diseaseName} significantly.`,
-    `🌱 In future seasons, use certified blight-resistant seed varieties and maintain wide row spacing for better air circulation.`,
-    `⚠️ ${diseaseName} can spread to neighbouring plants within 24–48 hours in humid conditions. Isolate affected plants immediately.`,
-    `🔄 After handling infected plants, wash hands and tools with diluted bleach solution to prevent cross-contamination.`,
-  ]
-  return new Promise(resolve =>
-    setTimeout(() => resolve(replies[Math.floor(Math.random() * replies.length)]), 1000)
-  )
+  try {
+    const prompt = `You are Kisaan Bandhu AI, an expert in Indian crop diseases.
+The farmer's crop has been diagnosed with: ${diseaseName}.
+Answer the following question briefly and practically in English.
+You may add a helpful Hindi phrase if relevant. Keep response under 3 sentences.
+Question: ${userMessage}`
+
+    const result = await diseaseModel.generateContent(prompt)
+    return result.response.text()
+  } catch (err) {
+    console.error('Gemini SDK error:', err)
+    return '🙏 Connection error. Please check your internet and try again.'
+  }
 }
 
 /* ─── Generate recommended questions based on disease ─── */
