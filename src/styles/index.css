@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Global Reset & Base ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #0a1a0a;
+  color: #f1f8f1;
+  min-height: 100vh;
+}
+
+/* ─── Background Hero ─────────────────────────────────────────── */
+.hero-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, rgba(10,30,10,0.75) 100%),
+    url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1920&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* ─── Glass Cards ─────────────────────────────────────────────── */
+.glass {
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(165,214,167,0.18);
+  border-radius: 1rem;
+}
+
+.glass-green {
+  background: rgba(46,125,50,0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(165,214,167,0.3);
+  border-radius: 1rem;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e7d32; border-radius: 4px; }
+
+/* ─── Chat ────────────────────────────────────────────────────── */
+.chat-window { scrollbar-width: thin; scrollbar-color: #2e7d32 transparent; }
+
+/* ─── Animations ──────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(46,125,50,0.5); }
+  50%       { box-shadow: 0 0 0 8px rgba(46,125,50,0); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.fade-up   { animation: fadeUp 0.6s ease both; }
+.pulse-btn { animation: pulse-green 2.4s infinite; }
+
+/* ─── Tip Card hover ──────────────────────────────────────────── */
+.tip-card { transition: transform 0.22s ease, box-shadow 0.22s ease; }
+.tip-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(46,125,50,0.35); }
+
+/* ─── Modal Overlay ───────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+
+/* ─── Navbar ──────────────────────────────────────────────────── */
+.navbar-link {
+  position: relative;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.navbar-link::after {
+  content: '';
+  position: absolute; bottom: -2px; left: 0;
+  width: 0; height: 2px;
+  background: #f9a825;
+  transition: width 0.25s;
+}
+.navbar-link:hover { color: #f9a825; }
+.navbar-link:hover::after { width: 100%; }
+
+/* ─── Upload Box ──────────────────────────────────────────────── */
+.upload-box {
+  border: 2px dashed rgba(165,214,167,0.4);
+  border-radius: 1rem;
+  transition: border-color 0.25s, background 0.25s;
+}
+.upload-box:hover {
+  border-color: #a5d6a7;
+  background: rgba(46,125,50,0.12);
+}
+
+/* ─── Severity Badges ─────────────────────────────────────────── */
+.badge-low    { background: #1b5e20; color: #a5d6a7; }
+.badge-medium { background: #e65100; color: #ffe0b2; }
+.badge-high   { background: #b71c1c; color: #ffcdd2; }
