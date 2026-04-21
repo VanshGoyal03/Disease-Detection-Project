@@ -9,6 +9,11 @@ export default function App() {
   // Track active hash section for scroll-spy
   const [activeSection, setActiveSection] = useState('home')
 
+  // Scroll to top instantly on every page load (prevents browser restoring a mid-page position)
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [])
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {

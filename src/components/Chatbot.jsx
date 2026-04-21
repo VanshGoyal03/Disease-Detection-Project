@@ -77,11 +77,14 @@ export default function Chatbot() {
   ])
   const [input, setInput]     = useState('')
   const [typing, setTyping]   = useState(false)
-  const bottomRef             = useRef(null)
+  const chatWindowRef = useRef(null)
+  const bottomRef     = useRef(null)
 
-  // Auto-scroll to latest message
+  // Scroll only the chat window — NOT the whole page
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (chatWindowRef.current) {
+      chatWindowRef.current.scrollTop = chatWindowRef.current.scrollHeight
+    }
   }, [messages, typing])
 
   const sendMessage = async () => {
@@ -112,6 +115,7 @@ export default function Chatbot() {
       {/* Chat Window */}
       <div
         id="chat-window"
+        ref={chatWindowRef}
         className="chat-window h-64 overflow-y-auto mb-4 pr-1 space-y-1"
       >
         {messages.map(msg => <Bubble key={msg.id} msg={msg} />)}
