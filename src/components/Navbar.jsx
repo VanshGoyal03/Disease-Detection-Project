@@ -12,32 +12,120 @@ const LeafIcon = () => (
 )
 
 /* ─── Stub Handlers ─────────────────────────────────────────────── */
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 /**
- * TODO: connect to backend — POST /api/auth/login
+ * Login Handler - Connects to POST /api/auth/login
  */
-function handleLogin(credentials) {
-  console.log('handleLogin() called with:', credentials)
-  alert(`🔐 Login stub fired!\nEmail: ${credentials.email}\n\nTODO: connect to /api/auth/login`)
+async function handleLogin(credentials) {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      alert(`❌ Login failed: ${data.error}`)
+      return
+    }
+
+    // Store auth token
+    localStorage.setItem('authToken', data.session.access_token)
+    localStorage.setItem('user', JSON.stringify(data.user))
+
+    alert(`✅ Login successful!\nWelcome, ${data.user.name}!`)
+    console.log('User logged in:', data.user)
+  } catch (error) {
+    alert(`❌ Error: ${error.message}`)
+    console.error('Login error:', error)
+  }
 }
 
 /**
- * TODO: connect to backend — POST /api/auth/signup
+ * Sign Up Handler - Connects to POST /api/auth/signup
  */
-function handleSignUp(data) {
-  console.log('handleSignUp() called with:', data)
-  alert(`📝 Sign-Up stub fired!\nName: ${data.name}\nEmail: ${data.email}\n\nTODO: connect to /api/auth/signup`)
+async function handleSignUp(data) {
+  try {
+    // Validate passwords match
+    if (data.password !== data.confirmPassword) {
+      alert('❌ Passwords do not match!')
+      return
+    }
+
+    const res = await fetch(`${API_BASE}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        name: data.name,
+      }),
+    })
+
+    const responseData = await res.json()
+
+    if (!res.ok) {
+      alert(`❌ Signup failed: ${responseData.error}`)
+      return
+    }
+
+    alert(`✅ Account created successfully!\nWelcome, ${responseData.user.name}!`)
+    console.log('User signed up:', responseData.user)
+  } catch (error) {
+    alert(`❌ Error: ${error.message}`)
+    console.error('Signup error:', error)
+  }
 }
 
 /**
- * TODO: connect to backend — PATCH /api/auth/change-password
+ * Change Password Handler - Connects to PATCH /api/auth/change-password
  */
-function handleChangePassword(data) {
-  console.log('handleChangePassword() called with:', data)
-  alert('🔑 Change Password stub fired!\nTODO: connect to /api/auth/change-password')
+async function handleChangePassword(data) {
+  try {
+    // Validate new passwords match
+    if (data.newPwd !== data.confirmPwd) {
+      alert('❌ New passwords do not match!')
+      return
+    }
+
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      alert('❌ You must be logged in to change password')
+      return
+    }
+
+    const res = await fetch(`${API_BASE}/api/auth/change-password`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        currentPassword: data.oldPwd,
+        newPassword: data.newPwd,
+      }),
+    })
+
+    const responseData = await res.json()
+
+    if (!res.ok) {
+      alert(`❌ Password change failed: ${responseData.error}`)
+      return
+    }
+
+    alert(`✅ ${responseData.message}`)
+    console.log('Password changed successfully')
+  } catch (error) {
+    alert(`❌ Error: ${error.message}`)
+    console.error('Change password error:', error)
+  }
 }
 
 /**
- * TODO: connect to backend — PATCH /api/auth/change-username
+ * Change Username Handler - Placeholder (implement on backend as needed)
  */
 function handleChangeUsername(data) {
   console.log('handleChangeUsername() called with:', data)
@@ -48,6 +136,9 @@ function handleChangeUsername(data) {
 export default function Navbar({ activeSection }) {
   /* modal visibility states */
   const [modal, setModal] = useState(null) // 'login'|'signup'|'changePwd'|'changeUser'
+
+  /* global loading state — prevents double submit */
+  const [submitting, setSubmitting] = useState(false)
 
   /* mobile menu */
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -74,8 +165,8 @@ export default function Navbar({ activeSection }) {
   const [currentUser, setCurrentUser] = useState('')
   const [newUser, setNewUser]         = useState('')
 
-  const closeModal = () => setModal(null)
-  const openModal  = (name) => { setModal(name); setMobileOpen(false); setSettingsOpen(false) }
+  const closeModal = () => { setModal(null); setSubmitting(false) }
+  const openModal  = (name) => { setModal(name); setMobileOpen(false); setSettingsOpen(false); setSubmitting(false) }
 
   const navLinks = [
     { label: 'About', href: '#about' },
@@ -235,10 +326,16 @@ export default function Navbar({ activeSection }) {
           value={loginPassword} onChange={e => setLoginPassword(e.target.value)} placeholder="••••••••" />
         <button
           id="login-submit-btn"
-          onClick={() => { handleLogin({ email: loginEmail, password: loginPassword }); closeModal() }}
-          className="w-full bg-[#2e7d32] hover:bg-[#388e3c] text-white font-semibold py-2.5 rounded-lg transition mt-2"
+          disabled={submitting}
+          onClick={async () => {
+            setSubmitting(true)
+            await handleLogin({ email: loginEmail, password: loginPassword })
+            setSubmitting(false)
+            closeModal()
+          }}
+          className="w-full bg-[#2e7d32] hover:bg-[#388e3c] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition mt-2"
         >
-          Login
+          {submitting ? '⏳ Logging in…' : 'Login'}
         </button>
         <p className="text-center text-sm text-white/60 mt-4">
           Don't have an account?{' '}
@@ -263,10 +360,16 @@ export default function Navbar({ activeSection }) {
           value={signupConfirm} onChange={e => setSignupConfirm(e.target.value)} placeholder="••••••••" />
         <button
           id="signup-submit-btn"
-          onClick={() => { handleSignUp({ name: signupName, email: signupEmail, password: signupPassword }); closeModal() }}
-          className="w-full bg-[#f9a825] hover:bg-yellow-500 text-black font-semibold py-2.5 rounded-lg transition mt-2"
+          disabled={submitting}
+          onClick={async () => {
+            setSubmitting(true)
+            await handleSignUp({ name: signupName, email: signupEmail, password: signupPassword, confirmPassword: signupConfirm })
+            setSubmitting(false)
+            closeModal()
+          }}
+          className="w-full bg-[#f9a825] hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold py-2.5 rounded-lg transition mt-2"
         >
-          Create Account
+          {submitting ? '⏳ Creating account…' : 'Create Account'}
         </button>
         <p className="text-center text-sm text-white/60 mt-4">
           Already have an account?{' '}
@@ -289,10 +392,16 @@ export default function Navbar({ activeSection }) {
           value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)} placeholder="••••••••" />
         <button
           id="change-pwd-submit-btn"
-          onClick={() => { handleChangePassword({ oldPwd, newPwd, confirmPwd }); closeModal() }}
-          className="w-full bg-[#2e7d32] hover:bg-[#388e3c] text-white font-semibold py-2.5 rounded-lg transition mt-2"
+          disabled={submitting}
+          onClick={async () => {
+            setSubmitting(true)
+            await handleChangePassword({ oldPwd, newPwd, confirmPwd })
+            setSubmitting(false)
+            closeModal()
+          }}
+          className="w-full bg-[#2e7d32] hover:bg-[#388e3c] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition mt-2"
         >
-          Update Password
+          {submitting ? '⏳ Updating…' : 'Update Password'}
         </button>
       </Modal>
 
