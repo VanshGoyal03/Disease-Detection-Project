@@ -40,7 +40,7 @@ export default function Contact() {
       <div className="max-w-5xl mx-auto">
 
         {/* ── Kisan Mental Health Helpline Banner ─────────────────── */}
-        <div className="mb-10 fade-up">
+        <div id="mental-health-helpline" className="mb-10 fade-up">
           <div
             style={{
               background: 'linear-gradient(135deg, rgba(74,20,140,0.55) 0%, rgba(30,60,30,0.6) 100%)',
@@ -221,7 +221,7 @@ export default function Contact() {
         </div>
 
         {/* Header */}
-        <div className="text-center mb-12 fade-up">
+        <div id="contact-form" className="text-center mb-12 fade-up">
           <span className="inline-block bg-[#2e7d32]/40 border border-green-500/30 text-[#a5d6a7]
                            text-xs font-semibold px-4 py-1.5 rounded-full mb-4 tracking-widest uppercase">
             Contact Us

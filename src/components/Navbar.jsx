@@ -78,12 +78,17 @@ export default function Navbar({ activeSection }) {
   const openModal  = (name) => { setModal(name); setMobileOpen(false); setSettingsOpen(false) }
 
   const navLinks = [
-    { label: 'About',      href: '#about'   },
-    { label: 'Info',       href: '#info'    },
-    { label: 'Contact Us', href: '#contact' },
+    { label: 'About', href: '#about' },
+    { label: 'Info',  href: '#info'  },
   ]
 
-  const helplineHref = '#contact'
+  // Smooth scroll with fixed-navbar offset
+  const scrollTo = (id) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    const top = el.getBoundingClientRect().top + window.scrollY - 80
+    window.scrollTo({ top, behavior: 'smooth' })
+  }
 
   return (
     <>
@@ -107,16 +112,24 @@ export default function Navbar({ activeSection }) {
               ))}
 
               {/* Mental Health Helpline — distinct purple pill */}
-              <a
+              <button
                 id="helpline-nav-link"
-                href={helplineHref}
+                onClick={() => scrollTo('mental-health-helpline')}
                 className="flex items-center gap-1.5 text-[#ce93d8] text-sm font-semibold
                            bg-purple-900/30 hover:bg-purple-800/50 border border-purple-500/30
                            hover:border-purple-400/60 px-3 py-1.5 rounded-full transition-all duration-200"
                 title="Kisan Mental Health Helpline — Free 24×7"
               >
                 🧠 Helpline
-              </a>
+              </button>
+
+              {/* Contact Us — appears after Helpline */}
+              <button
+                onClick={() => scrollTo('contact-form')}
+                className="navbar-link text-sm"
+              >
+                Contact Us
+              </button>
 
               {/* Settings Dropdown */}
               <div className="relative">
@@ -182,13 +195,18 @@ export default function Navbar({ activeSection }) {
                   {l.label}
                 </a>
               ))}
-              <a
-                href={helplineHref}
-                onClick={() => setMobileOpen(false)}
-                className="block px-3 py-2 text-[#ce93d8] hover:text-purple-300 transition text-sm font-semibold"
+              <button
+                onClick={() => { scrollTo('mental-health-helpline'); setMobileOpen(false) }}
+                className="block w-full text-left px-3 py-2 text-[#ce93d8] hover:text-purple-300 transition text-sm font-semibold"
               >
                 🧠 Helpline (Mental Health)
-              </a>
+              </button>
+              <button
+                onClick={() => { scrollTo('contact-form'); setMobileOpen(false) }}
+                className="block w-full text-left px-3 py-2 text-white/80 hover:text-yellow-400 transition text-sm"
+              >
+                Contact Us
+              </button>
               <button onClick={() => openModal('changePwd')}
                 className="block w-full text-left px-3 py-2 text-white/80 hover:text-yellow-400 transition text-sm">
                 ⚙ Change Password
