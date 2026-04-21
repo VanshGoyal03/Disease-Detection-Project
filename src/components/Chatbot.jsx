@@ -7,14 +7,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
  * Send user message, receive AI response
  */
 /* ─── Gemini SDK ────────────────────────────────────────────────── */
-const genAI = new GoogleGenerativeAI('AIzaSyDw7ivBDJxkEdum0pEeiJ85ETVaImKvzXw')
-const chatModel = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' })
+const chatGenAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_CHAT_KEY || '')
+const chatModel = chatGenAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite-preview' })
 
 async function fetchBotResponse(userMessage) {
   try {
     const prompt = `You are Kisaan Bandhu AI, a helpful assistant for Indian farmers.
-Answer briefly in English. You may add a helpful Hindi phrase if relevant.
-Keep the response under 4 sentences.
+Answer briefly in English or Hindi based on user's language strictly if he states language otherwise answer in English. You may add a helpful Hindi phrase if relevant.
+Keep the response under 6 sentences.
 User asked: ${userMessage}`
 
     const result = await chatModel.generateContent(prompt)
