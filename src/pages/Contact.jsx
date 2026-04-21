@@ -1,13 +1,20 @@
 import { useState } from 'react'
 import FormInput from '../components/FormInput'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 /**
- * TODO: connect to backend — POST /api/contact
- * Sends farmer's name, email, and message to support team
+ * Sends farmer's name, email, and message to POST /api/contact
  */
-function handleContactSubmit(data) {
-  console.log('handleContactSubmit() called with:', data)
-  alert(`✅ Message sent!\nName: ${data.name}\nEmail: ${data.email}\n\nTODO: connect to POST /api/contact`)
+async function handleContactSubmit(data) {
+  const res = await fetch(`${API_BASE}/api/contact`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json.error || 'Failed to send message')
+  return json
 }
 
 const CONTACT_INFO = [
@@ -22,14 +29,24 @@ export default function Contact() {
   const [email, setEmail]     = useState('')
   const [message, setMessage] = useState('')
   const [sent, setSent]       = useState(false)
+  const [error, setError]     = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
     if (!name || !email || !message) { alert('Please fill in all fields.'); return }
-    handleContactSubmit({ name, email, message })
-    setSent(true)
-    setName(''); setEmail(''); setMessage('')
-    setTimeout(() => setSent(false), 4000)
+    setLoading(true)
+    setError('')
+    try {
+      await handleContactSubmit({ name, email, message })
+      setSent(true)
+      setName(''); setEmail(''); setMessage('')
+      setTimeout(() => setSent(false), 5000)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -247,6 +264,13 @@ export default function Contact() {
               </div>
             )}
 
+            {error && (
+              <div className="bg-red-900/60 border border-red-500/40 text-red-300 text-sm
+                              px-4 py-3 rounded-lg mb-5 flex items-center gap-2 fade-up">
+                ❌ {error}
+              </div>
+            )}
+
             <form onSubmit={onSubmit} noValidate>
               <FormInput
                 id="contact-name"
@@ -281,10 +305,11 @@ export default function Contact() {
               <button
                 id="contact-submit-btn"
                 type="submit"
-                className="w-full bg-[#2e7d32] hover:bg-[#388e3c] text-white font-semibold
+                disabled={loading}
+                className="w-full bg-[#2e7d32] hover:bg-[#388e3c] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold
                            py-2.5 rounded-lg transition-all duration-200 pulse-btn"
               >
-                📨 Send Message
+                {loading ? '⏳ Sending…' : '📨 Send Message'}
               </button>
             </form>
           </div>
